@@ -4,7 +4,19 @@ from mongoengine import Document, SequenceField, StringField, DictField, \
     DateTimeField, IntField, BooleanField, ListField, DecimalField, \
     ImageField, EmailField, GeoPointField
 
+from mongoengine import signals
 from datetime import datetime
+
+
+def update_timestamp(sender, document, **kwargs):
+    """ Update the document field 'updated_at' with the current date and time.
+
+    :param sender:
+    :param document: Document updated
+    :param kwargs: Any extra key value arguments
+    :return: None
+    """
+    document.updated_at = datetime.now()
 
 class FooEvent(Document):
     """
@@ -67,6 +79,14 @@ class FooEvent(Document):
     # Tags assigned to this event
     tags = ListField(StringField(max_length=30))
 
+    # Event creation bookkeeping
+    created_at = DateTimeField(required=True, verbose_name="Event created at",
+                               default=datetime.now)
+
+    # Event updated bookkeeping
+    updated_at = DateTimeField(required=True, verbose_name="Event updated at",
+                               default=None)
+
     # Date and time with minute accuracy the event starts
     event_start = DateTimeField(required=False, verbose_name="Start Date")
 
@@ -102,6 +122,10 @@ class FooEvent(Document):
 
     # Changed this to a StringField from 'Blob' like field
     email_plaintext = StringField(verbose_name="Response email in plain text")
+
+
+# Register signal handler for FooEvent
+signals.pre_save.connect(update_timestamp, sender=FooEvent)
 
 
 # class FooTicket(Document):
