@@ -90,7 +90,7 @@ class FooEvent(Document):
     # Date and time with minute accuracy the event starts
     event_start = DateTimeField(required=False, verbose_name="Start Date")
 
-    #
+    # Date and time the event ends
     event_end = DateTimeField(required=False, verbose_name="End Date")
 
     #
@@ -201,8 +201,12 @@ class FooAttender(Document):
     email = EmailField(required=True)
 
     # Name of company the attender represents and/or works for. Even
-    # better if we now the company
+    # better if we also know the company
     company_name = StringField()
+
+    # What this attender has been attending, and are going to attend
+    #
+    attending = ListField(DictField(), default=None)
 
 
 
