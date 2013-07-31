@@ -108,7 +108,7 @@ class FooEvent(Document):
 
 
     def __str__(self):
-        return "FooEvent: [%d] %s" % (self.event_id, self.title)
+        return "FooEvent: [%d] %s" % (self.id, self.title)
 
     # Unique id for this event. Auto incremented
     id = SequenceField(required=True, unique=True, primary_key=True)
