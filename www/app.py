@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import json
-import biz.models
+from biz.models import *
 
-from flask import Flask
+from flask import Flask, request, url_for, flash
 from flask.ext.github import GitHub
 from mongoengine import connect
 
@@ -21,7 +21,7 @@ def hello():
 
 
 # api methods for Event API - this is the initial version thus v1
-@app.route('/api/v1/event_new', methods=['POST'])
+@app.route('/api/v1/event', methods=['GET', 'PUT', 'POST', 'DELETE'])
 def event_new():
     data = json.loads(request.data)
     FooEvent.objects.create()

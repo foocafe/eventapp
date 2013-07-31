@@ -31,7 +31,12 @@
 
         Create a new event
 
-    PUT/DELETE
+    PUT
+        /api/v1/events/731
+        Update
 
-        Update or delete a specific event
+    DELETE
+
+        /api/v1/events/731
+        Delete
 

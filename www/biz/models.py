@@ -111,7 +111,7 @@ class FooEvent(Document):
         return "FooEvent: [%d] %s" % (self.event_id, self.title)
 
     # Unique id for this event. Auto incremented
-    event_id = SequenceField(required=True, unique=True, primary_key=True)
+    id = SequenceField(required=True, unique=True, primary_key=True)
 
     # The event title
     title = StringField(required=True, max_length=255,
@@ -181,13 +181,23 @@ class FooEvent(Document):
     email_plaintext = StringField(verbose_name="Response email in plain text")
 
 
-# Register signal handler for FooEvent
+# Register signal handler for FooEvent saves
 signals.pre_save.connect(update_timestamp, sender=FooEvent)
 
 
-class FooTicket(Document):
-    """ Ticket
+class FooTicketInventory(Document):
+    """ Ticket inventory
     """
+
+    @staticmethod
+    def create(event_id, **kwargs):
+        """
+        Basic factory method for creating a Ticket inventory.
+        :param event_id: Id for the event, mandatory.
+        :param kwargs:
+        :return:
+        """
+        pass
 
     # The event
     event_id = IntField(required=True)
@@ -222,7 +232,30 @@ class FooTicket(Document):
     # Max number of tickets that can be ...
     ticket_max = IntField(required=True)
 
-    #
+    # Constraint for attenders/users when acquiring/issuing tickets
+    issuing_constraint = ListField(field=StringField())
+
+
+class FooTicket(Document):
+    """ Intersection between a user and a event. Records ticket
+    reservations... Is it?
+
+    Reservation == Buy ?
+    """
+
+    # Id of the event
+    event_id = IntField(required=True)
+
+    # Id of the user/attender
+    user_id = IntField(required=True)
+
+    # The amount of tickets reserved
+    amount = IntField(required=True, default=1)
+
+    # Date and time the ticket(s) was reserved/issued/bought
+    created_at = DateTimeField(required=True, default=datetime.now)
+
+
 
 class FooVenue(Document):
     """ Where it's at, the FooEvent.
@@ -275,10 +308,9 @@ class FooAttender(Document):
     # better if we also know the company
     company_name = StringField()
 
-    # What this attender has been attending, and are going to attend
-    #
-    attending = ListField(DictField(), default=None)
-
+    # Dictionary of provider name and auth token
+    # e.g. github => token_github, linkedin => token_linked
+    oauth_token = DictField()
 
 
 # class FooUser(Document):
