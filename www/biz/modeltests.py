@@ -6,7 +6,7 @@ __version__ = '0.1.0'
 import unittest
 
 from mongoengine import *
-from biz.models import FooEvent
+from biz.models import FooEvent, FooPartner, FooContact
 
 
 class FooEventTest(unittest.TestCase):
@@ -30,13 +30,34 @@ class FooEventTest(unittest.TestCase):
 
         event_id = event.event_id
 
-        event.delete()
+        #event.delete()
 
-        try:
-            FooEvent.objects.get(event_id=event_id)
-            self.fail("This should not be here")
-        except:
-            pass
+        #try:
+        #    FooEvent.objects.get(event_id=event_id)
+        #    self.fail("This should not be here")
+        #except:
+        #    pass
 
 
+class FooPartnerTest(unittest.TestCase):
 
+    def setUp(self):
+        self.connection = connect("fooTest")
+
+    def tearDown(self):
+        self.connection.disconnect()
+
+
+    def testBasicCrud(self):
+
+        p = FooPartner(name="A Partner")
+        p.description = "This partner is nice, really nice!"
+        p.url = "http://www.foocafe.org"
+
+
+        c  = FooContact(title="Sir", name="Hakan Svalin",
+                        email="hakan.svalin@gmail.com", phone="+46 735 237494")
+
+        p.contacts.append(c)
+
+        p.save()

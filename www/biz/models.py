@@ -2,11 +2,15 @@
 
 from mongoengine import Document, SequenceField, StringField, DictField, \
     DateTimeField, IntField, BooleanField, ListField, DecimalField, \
-    ImageField, EmailField, GeoPointField
+    ImageField, EmailField, GeoPointField, EmbeddedDocument, \
+    EmbeddedDocumentField, URLField
 
 from mongoengine import signals
 from datetime import datetime
 
+
+# Some nice to have collections/sets/lists
+CURRENCIES = ["SEK", "EUR", "USD", "BBD"]
 
 def update_timestamp(sender, document, **kwargs):
     """ Update the document field 'updated_at' with the current date and time.
@@ -17,6 +21,52 @@ def update_timestamp(sender, document, **kwargs):
     :return: None
     """
     document.updated_at = datetime.now()
+
+
+class FooContact(EmbeddedDocument):
+    """ Contact information for someone, a person.
+    """
+
+    # Might be a significant piece of information
+    title = StringField()
+
+    # The contact is a person and as such has a name
+    name = StringField(required=True)
+
+    # and an email
+    email = EmailField(required=True)
+
+    # and a phone
+    phone = StringField(verbose_name="Phone")
+
+
+class FooPartner(Document):
+    """ A Foo Café Partner
+
+    """
+
+    # Generated unique key
+    id = SequenceField(required=True)
+
+    # Partner name
+    name = StringField(required=True)
+
+    # What is there to know about this partner
+    description = StringField()
+
+    # URL to partner
+    url = URLField()
+
+    # NOTE! This bastard requires PIL to be installed
+    logo = ImageField()
+
+    #
+    social = DictField()
+
+    # Contact(s), embedded documents of FooContact
+    contacts = ListField(field=EmbeddedDocumentField(document_type=FooContact))
+
+
 
 class FooEvent(Document):
     """
@@ -30,6 +80,9 @@ class FooEvent(Document):
         instances without typing myself to death...
 
     """
+
+    # Category choices, see field category
+    CATEGORY_CHOICES = ["Code", "Cutting Edge", "Innovation", "People", "Business"]
 
     @staticmethod
     def create(title, **kwargs):
@@ -73,8 +126,12 @@ class FooEvent(Document):
     # A name that types the event
     event_type = StringField(required=False, max_length=50)
 
-    # An event category
-    category = DictField(required=False)
+    # An event category, might not be necessary. Is tags enough for
+    # categorization. This is mainly use for filtering and organizing
+    # events in the presentation, e.g. Code, People, Business, Innovation
+    #category = DictField(required=False)
+    category = StringField(required=True, choices=CATEGORY_CHOICES,
+                           default=CATEGORY_CHOICES[0])
 
     # Tags assigned to this event
     tags = ListField(StringField(max_length=30))
@@ -128,21 +185,47 @@ class FooEvent(Document):
 signals.pre_save.connect(update_timestamp, sender=FooEvent)
 
 
-# class FooTicket(Document):
-#   event_id = IntField(required=True)
-#   name = StringField(required=True)
-#   description = StringField(required=True)
-#   price = DecimalField()
-#   currancy = DictField(required=True)
-#   quantity_available = IntField(required=True)
-#   ticket_start = DateTimeField(required=True)
-#   ticket_end = DateTimeField(required=True)
-#   ticket_min = IntField(required=True)
-#   ticket_max = IntField(required=True)
-#
+class FooTicket(Document):
+    """ Ticket
+    """
+
+    # The event
+    event_id = IntField(required=True)
+
+    # What?
+    name = StringField(required=True)
+
+    # What?
+    description = StringField(required=True)
+
+    # Price of this ticket
+    price = DecimalField(default=0.0, verbose_name="Price")
+
+    # SEK, EUR, USD etc
+    currency = DictField(required=True, verbose_name="Currency",
+                         choices=CURRENCIES)
+
+    # The number of tickets available
+    quantity_available = IntField(required=True)
+
+    # Ticket sell/reservation start date, i.e.
+    # date and time when tickets starts to sell
+    ticket_start = DateTimeField(required=True)
+
+    # Ticket sell/reservation end date, i.e
+    # date and time when tickets should not be available anymore
+    ticket_end = DateTimeField(required=True)
+
+    # Min number of tickets that can be ...
+    ticket_min = IntField(required=True)
+
+    # Max number of tickets that can be ...
+    ticket_max = IntField(required=True)
+
+    #
 
 class FooVenue(Document):
-    """ Where it's at
+    """ Where it's at, the FooEvent.
 
     """
 
@@ -172,18 +255,6 @@ class FooVenue(Document):
     # GEO location of this venue
     geo_location = GeoPointField()
 
-
-# class FooPartner(Document):
-#   partner_id = SequenceField(required=True)
-#   name = StringField()
-#   description = StringField()
-#   email = StringField()
-#   url = StringField()
-#
-#   # NOTE! This bastard requires PIL to be installed
-#   logo = ImageField()
-#
-#   social = DictField()
 
 class FooAttender(Document):
     """ A FooAttender is a person (usually) who attends any FooEvent
