@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import json
-from biz.models import *
+
+from resources import EventResourceCreator, EventResourceMutator
 
 from flask import Flask, request, url_for, flash
-from flask.ext.restful import reqparse, abort, Api, Resource
+from flask.ext.restful import Api
 
 from flask.ext.github import GitHub
 from mongoengine import connect
@@ -17,42 +18,7 @@ app.config['GITHUB_CLIENT_ID'] = '7202ee64b544e635bdbb'
 app.config['GITHUB_CLIENT_SECRET'] = '9c0df971624cb42ec6c3b1ecda41b6c9927d1756'
 app.config['GITHUB_CALLBACK_URL'] = 'http://localhost/auth/github-callback'
 
-
 api = Api(app)
-
-parser = reqparse.RequestParser()
-parser.add_argument('title', type=str, )
-parser.add_argument('sub_title', type=str)
-parser.add_argument('description', type=str)
-parser.add_argument('event_start', type=datetime, required=False)
-parser.add_argument('event_end', type=datetime, required=False)
-parser.add_argument('event_type', type=str, required=False)
-parser.add_argument('category', type=str, default="Code", required=False)
-
-class EventResourceCreator(Resource):
-
-    def post(self):
-
-        args = parser.parse_args()
-        event = FooEvent.create(args['title'])
-
-        event.sub_title = args['sub_title']
-        event.description = args['description']
-
-        event.save()
-        return event.to_json(), 201
-
-class EventResourceMutator(Resource):
-
-    def get(self, event_id):
-        return "Awsome", 200
-
-    def put(self, event_id):
-        event = FooEvent.objects(id=event_id)
-
-
-    def delete(self, event_id):
-        pass
 
 # @app.route("/")
 # def hello():
