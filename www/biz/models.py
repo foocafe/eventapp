@@ -2,15 +2,15 @@
 
 from mongoengine import Document, SequenceField, StringField, DictField, \
     DateTimeField, IntField, BooleanField, ListField, DecimalField, \
-    ImageField, EmailField, GeoPointField, EmbeddedDocument, \
+    EmailField, GeoPointField, EmbeddedDocument, \
     EmbeddedDocumentField, URLField
 
 from mongoengine import signals
 from datetime import datetime
 
-
 # Some nice to have collections/sets/lists
 CURRENCIES = ["SEK", "EUR", "USD", "BBD"]
+COMMON_TAGS = ["code", "geek", "communication"]
 
 def update_timestamp(sender, document, **kwargs):
     """ Update the document field 'updated_at' with the current date and time.
@@ -23,8 +23,83 @@ def update_timestamp(sender, document, **kwargs):
     document.updated_at = datetime.now()
 
 
+class FooDocument(Document):
+    """ Base for Foo related document classes.
+    Adds the book keeping fields: created_at and
+    updated_at
+    """
+
+    # Needed to be able to subclass
+    meta = {'allow_inheritance': True}
+
+    # A incremented surrogate key given all created FooDocuments
+    id = SequenceField(required=True, unique=True, primary_key=True)
+
+    # The date and time this document was created
+    created_at = DateTimeField(required=True, default=datetime.now)
+
+    # The date and time this document was updated
+    updated_at = DateTimeField(required=False, default=None)
+
+
+class Base64Content(EmbeddedDocument):
+    """ Base64 encoded data document
+    """
+    # Name of the content, usually a file name, e.g logo.png
+    name = StringField(required=True)
+
+    # Mime type of the content
+    mime = StringField(required=True)
+
+    # The actual content encoded in base64
+    data = StringField(required=False)
+
+
+class FooSocial(EmbeddedDocument):
+    """ Social networking channel
+    """
+
+    # List of known social network kinds
+    KINDS = ['Facebook', 'Twitter', 'LinkedIn', 'Instagram']
+
+    # Kinds dictionary
+    KINDS_MAP = \
+        {
+        "facebook": KINDS[0],
+        "twitter": KINDS[1],
+        "linkedin": KINDS[2],
+        "instagram": KINDS[3]
+        }
+
+    # Kind of social network, i.e Twitter, Facebook etc
+    kind = StringField(required=True, choices=KINDS)
+
+    # Url or other token identifying the Social network account/channel
+    value = StringField(required=True)
+
+
+class FooAddress(EmbeddedDocument):
+    """ Address document
+    """
+
+    # First address line
+    address_1 = StringField()
+
+    # Second address line
+    address_2 = StringField()
+
+    # Postal or Zip code
+    postal_code = StringField()
+
+    # Name of city
+    city = StringField()
+
+    # ISO code for country
+    country = StringField(default="SE")
+
+
 class FooContact(EmbeddedDocument):
-    """ Contact information for someone, a person.
+    """ Contact information for someone, i.e. a person.
     """
 
     # Might be a significant piece of information
@@ -40,35 +115,44 @@ class FooContact(EmbeddedDocument):
     phone = StringField(verbose_name="Phone")
 
 
-class FooPartner(Document):
+class FooPartner(FooDocument):
     """ A Foo Café Partner
-
     """
 
-    # Generated unique key
-    id = SequenceField(required=True)
+    # Partnership categorization
+    PARTNERSHIP = ["Regular", "Premium"]
+
+    def __str__(self):
+        """ Return a string representation of this instance"""
+        return "FooPartner: %d - %s" % (self.id, self.name)
 
     # Partner name
-    name = StringField(required=True)
+    name = StringField(required=True, unique=True)
 
     # What is there to know about this partner
     description = StringField()
 
-    # URL to partner
-    url = URLField()
+    # Partners address
+    address = EmbeddedDocumentField(document_type=FooAddress)
 
+    # Kind of partnership
+    partnership = StringField(required=True, default=PARTNERSHIP[0], choices=PARTNERSHIP)
+
+    # URL to partners site (?)
+    url = URLField(required=True)
+
+    # An logotype image representative for this partner
     # NOTE! This bastard requires PIL to be installed
-    logo = ImageField()
+    logo = EmbeddedDocumentField(document_type=Base64Content, required=False)
 
-    #
-    social = DictField()
+    # Social links, tokens
+    social = ListField(field=EmbeddedDocumentField(document_type=FooSocial))
 
-    # Contact(s), embedded documents of FooContact
+    # Contact(s) for this partner
     contacts = ListField(field=EmbeddedDocumentField(document_type=FooContact))
 
 
-
-class FooEvent(Document):
+class FooEvent(FooDocument):
     """
     This is what it's all about; Events.
 
@@ -106,12 +190,12 @@ class FooEvent(Document):
 
         return result
 
-
     def __str__(self):
+        """
+        :returns: A String representation of this FooEvent instance that can
+        be used for debugging.
+        """
         return "FooEvent: [%d] %s" % (self.id, self.title)
-
-    # Unique id for this event. Auto incremented
-    id = SequenceField(required=True, unique=True, primary_key=True)
 
     # The event title
     title = StringField(required=True, max_length=255,
@@ -135,14 +219,6 @@ class FooEvent(Document):
 
     # Tags assigned to this event
     tags = ListField(StringField(max_length=30))
-
-    # Event creation bookkeeping
-    created_at = DateTimeField(required=True, verbose_name="Event created at",
-                               default=datetime.now)
-
-    # Event updated bookkeeping
-    updated_at = DateTimeField(required=True, verbose_name="Event updated at",
-                               default=None)
 
     # Date and time with minute accuracy the event starts
     event_start = DateTimeField(required=False, verbose_name="Start Date")
@@ -179,10 +255,6 @@ class FooEvent(Document):
 
     # Changed this to a StringField from 'Blob' like field
     email_plaintext = StringField(verbose_name="Response email in plain text")
-
-
-# Register signal handler for FooEvent saves
-signals.pre_save.connect(update_timestamp, sender=FooEvent)
 
 
 class FooTicketInventory(Document):
@@ -256,7 +328,6 @@ class FooTicket(Document):
     created_at = DateTimeField(required=True, default=datetime.now)
 
 
-
 class FooVenue(Document):
     """ Where it's at, the FooEvent.
 
@@ -319,5 +390,7 @@ class FooAttender(Document):
 #   email = StringField()
 #   oauth_data = DictField()
     
-  
-  
+
+# Register signal handler for FooEvent saves
+signals.pre_save.connect(update_timestamp, sender=FooDocument)
+
